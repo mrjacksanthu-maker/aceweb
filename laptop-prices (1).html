@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ace – Laptop Price Comparison</title>
+<style>
+:root{--card:#0a0d14;--line:#16233d;--text:#e8f0ff;--mute:#7d8fb3;--blue:#2f8cff;--glow:#58b4ff;--green:#3dffa2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{margin:0;background:#000;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{min-height:100vh;cursor:crosshair}
+canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+header{text-align:center;padding:36px 16px 6px}
+h1{margin:0;font-size:clamp(34px,7vw,56px);letter-spacing:2px;color:var(--glow);text-shadow:0 0 24px rgba(47,140,255,.6)}
+header p{color:var(--mute);margin:8px 0 0}
+.bar{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:16px 16px 6px}
+input,select{background:var(--card);border:1px solid var(--line);color:var(--text);padding:11px 14px;border-radius:10px;font-size:15px;outline:none}
+#q{flex:1 1 320px;max-width:520px;font-size:17px;padding:14px 18px;border-radius:99px}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 12px rgba(47,140,255,.5)}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:8px 16px 14px}
+.chip{background:var(--card);border:1px solid var(--line);color:var(--mute);padding:8px 16px;border-radius:99px;font-size:14px;cursor:pointer}
+.chip.on,.chip:hover{border-color:var(--blue);color:var(--glow);box-shadow:0 0 12px rgba(47,140,255,.45)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;max-width:1250px;margin:0 auto;padding:6px 16px 40px}
+.card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;overflow:hidden;transition:border-color .2s,transform .2s}
+.card::before{content:"";position:absolute;inset:0;background:radial-gradient(260px circle at var(--x,50%) var(--y,50%),rgba(47,140,255,.22),transparent 60%);opacity:0;transition:opacity .25s}
+.card:hover{border-color:var(--blue);transform:translateY(-3px)}
+.card:hover::before{opacity:1}
+.card>*{position:relative}
+.cat{font-size:11px;color:var(--glow);letter-spacing:1px;text-transform:uppercase}
+.card h2{margin:4px 0 2px;font-size:17px;line-height:1.3}
+.spec{color:var(--mute);font-size:13px;margin-bottom:10px}
+.ref{font-size:26px;font-weight:700;color:var(--text)}
+.src{color:var(--mute);font-size:12px;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;font-size:14px;color:var(--mute);border:1px solid transparent}
+.row a{flex:1;color:var(--glow);text-decoration:none}
+.row a:hover{text-decoration:underline}
+.row input{width:96px;padding:6px 8px;font-size:13px;border-radius:8px}
+.row.best{background:rgba(61,255,162,.1);border-color:rgba(61,255,162,.45)}
+.row.best a{color:var(--green)}
+.tag{display:none;font-size:10px;background:var(--green);color:#000;padding:2px 6px;border-radius:99px;font-weight:700}
+.row.best .tag{display:inline}
+.sum{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px;color:var(--mute)}
+.sum span{color:var(--green);font-weight:600}
+footer{max-width:760px;margin:0 auto;text-align:center;color:var(--mute);font-size:12px;padding:0 16px 30px;line-height:1.6}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<header>
+  <h1>ace</h1>
+  <p>Search any laptop – budget, everyday, premium or gaming – and find the cheapest platform</p>
+</header>
+<div class="bar">
+  <input id="q" type="search" placeholder="🔍 Search your laptop (e.g. HP, MacBook, RTX, i5)…" autofocus>
+  <select id="sort">
+    <option value="low">Price: Low to High</option>
+    <option value="high">Price: High to Low</option>
+  </select>
+</div>
+<div class="chips" id="chips"></div>
+<div class="grid" id="grid"></div>
+<footer>Listed prices come from Indian price-tracking sites (Smartprix, 91mobiles) on the dates shown, in ₹. Store prices change daily and differ by seller, so tap a store to see its live price, type it in the box, and ace marks the cheapest platform for you.</footer>
+
+<script>
+const D="Smartprix · 12 Oct 2026",J="Smartprix · 11 Jul 2026",H="91mobiles · 2 Jul 2026",H1="91mobiles · 1 Jul 2026",S="Smartprix · 30 Jun 2026",A="91mobiles · 26 Jul 2026",E="91mobiles · 24 Sep 2026";
+const laptops=[
+{n:"Acer One 14 Z8-415",s:"Core i3 11th Gen · 8GB · 512GB SSD",c:"Budget",p:19990,d:S},
+{n:"Thomson Neo 15 IN-N15I712",s:"Core i7 12th Gen · 16GB · 512GB SSD",c:"Budget",p:28990,d:J},
+{n:"Acer Swift Go 14 SFG14-41",s:"Ryzen 5 7430U · 16GB · 512GB SSD",c:"Budget",p:29990,d:S},
+{n:"MSI Modern 14 C7M-062IN",s:"Ryzen 5 7530U · 16GB · 512GB SSD",c:"Budget",p:43219,d:D},
+{n:"Acer Aspire 3 A324-53",s:"Core i5-1334U · 14-inch",c:"Budget",p:46990,d:A},
+{n:"HP 15 250R G10",s:"Intel Core 3 100U · 16GB · 512GB SSD",c:"Budget",p:48370,d:D},
+{n:"Asus Chromebook CM3206DM4A",s:"MediaTek Kompanio 540 · ChromeOS",c:"Budget",p:48990,d:E},
+{n:"Dell 15 AI D15260",s:"Core Ultra 5 225U · 16GB · 512GB SSD",c:"Everyday",p:72990,d:D},
+{n:"HP 15-fr0025TU",s:"Core i7-13620H · 16GB · 512GB SSD",c:"Everyday",p:79990,d:H},
+{n:"Asus Vivobook 14 X1407CA",s:"Core Ultra 5 225H · 16GB · 512GB SSD",c:"Everyday",p:81990,d:D},
+{n:"Dell 15 CD15260",s:"Core Ultra 5 225H · 16GB DDR5 · 512GB",c:"Everyday",p:85990,d:H1},
+{n:"Asus Vivobook S14 S3407CA",s:"Core Ultra 7 255H · 16GB · 512GB SSD",c:"Everyday",p:86990,d:J},
+{n:"Lenovo IdeaPad Slim 3 83K100CJIN",s:"Core i7 13th Gen · 16GB · 512GB SSD",c:"Everyday",p:88990,d:D},
+{n:"Acer Aspire 5 A514-54H",s:"Core Ultra 5 125H · 16GB · 512GB SSD",c:"Everyday",p:89990,d:H1},
+{n:"Apple MacBook Air 2026",s:"Apple M5 · 16GB · 512GB SSD · macOS",c:"Premium",p:119900,d:S},
+{n:"Lenovo IdeaPad Slim 5 14IPH11",s:"Core Ultra 5 322 · 16GB · OLED",c:"Premium",p:126990,d:H1},
+{n:"Samsung Galaxy Book5 Pro",s:"Core Ultra 5 226V · 16GB · AMOLED",c:"Premium",p:128030,d:H1},
+{n:"Acer Nitro V ANV15-41",s:"Ryzen 5 7535HS · RTX 3050 · 16GB",c:"Gaming",p:51990,d:S},
+{n:"Asus TUF Gaming A15 FA566NFR",s:"Ryzen 7 7435HS · 4GB GPU · 16GB",c:"Gaming",p:55990,d:J},
+{n:"HP Victus 15-fa1327TX",s:"Core i5 13th Gen · RTX 3050 · 16GB",c:"Gaming",p:64990,d:S},
+{n:"Acer ALG AL15G-53",s:"Core i7 13th Gen · RTX 3050 · 16GB",c:"Gaming",p:79990,d:D},
+{n:"HP Victus 15-fb3125AX",s:"Ryzen 7 7445H · RTX 3050 · 16GB",c:"Gaming",p:82494,d:D},
+{n:"Acer Nitro V 16 ANV16-71",s:"Core i5-14450HX · RTX 4050 · 16GB",c:"Gaming",p:85990,d:J},
+{n:"HP Victus 15-fb2114AX",s:"Ryzen 7 8845HS · RTX 4050 · 16GB",c:"Gaming",p:95862,d:H},
+{n:"Lenovo LOQ 83DV007GIN",s:"Core i5 13th Gen · RTX 4050 · 16GB",c:"Gaming",p:111989,d:D},
+{n:"Asus Gaming V16 V3607VU",s:"Core 5 210H · 6GB GPU · 16GB",c:"Gaming",p:121900,d:D}
+];
+const stores=[["Amazon","https://www.amazon.in/s?k="],["Flipkart","https://www.flipkart.com/search?q="],["Croma","https://www.croma.com/searchB?q="],["Reliance Digital","https://www.reliancedigital.in/search?q="],["Vijay Sales","https://www.vijaysales.com/search/"]];
+const fmt=v=>"₹"+v.toLocaleString("en-IN");
+const grid=document.getElementById("grid"),q=document.getElementById("q"),sort=document.getElementById("sort"),chips=document.getElementById("chips");
+const cats=["All","Budget","Everyday","Premium","Gaming"];let cat="All";const entered={};
+chips.innerHTML=cats.map(c=>`<button class="chip${c==="All"?" on":""}" data-c="${c}">${c==="Budget"?"Budget (under ₹50k)":c}</button>`).join("");
+chips.onclick=e=>{const b=e.target.closest(".chip");if(!b)return;cat=b.dataset.c;chips.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x===b));render();};
+function render(){
+  const t=q.value.trim().toLowerCase();
+  const list=laptops.map((l,i)=>({...l,i})).filter(l=>(cat==="All"||l.c===cat)&&(l.n+l.s+l.c).toLowerCase().includes(t)).sort((a,b)=>sort.value==="low"?a.p-b.p:b.p-a.p);
+  grid.innerHTML=list.map(l=>`<div class="card" data-i="${l.i}"><div class="cat">${l.c}</div><h2>${l.n}</h2><div class="spec">${l.s}</div>
+  <div class="ref">${fmt(l.p)}</div><div class="src">Listed price · ${l.d}</div>
+  ${stores.map(([k,u])=>`<div class="row" data-s="${k}"><a href="${u+encodeURIComponent(l.n)}" target="_blank" rel="noopener">${k} ↗ <span class="tag">LOWEST</span></a><input inputmode="numeric" placeholder="₹ price" value="${(entered[l.i]||{})[k]||""}"></div>`).join("")}
+  <div class="sum">Enter the live price from each store to find the cheapest platform.</div></div>`).join("")||'<p style="text-align:center;color:#7d8fb3;grid-column:1/-1">No laptop found. Try HP, Dell, Lenovo, ASUS, Acer or MacBook.</p>';
+  grid.querySelectorAll(".card").forEach(mark);
+}
+function mark(card){
+  const i=card.dataset.i,e=entered[i]||{};const rows=[...card.querySelectorAll(".row")];
+  const vals=rows.map(r=>e[r.dataset.s]).filter(Boolean);const sum=card.querySelector(".sum");
+  const min=vals.length?Math.min(...vals):null;
+  rows.forEach(r=>r.classList.toggle("best",min!==null&&vals.length>1&&e[r.dataset.s]===min));
+  if(vals.length>1){const best=rows.find(r=>e[r.dataset.s]===min).dataset.s;sum.innerHTML=`Cheapest: <span>${best}</span> at ${fmt(min)} – saves ${fmt(Math.max(...vals)-min)} vs highest entered`;}
+  else sum.textContent="Enter the live price from each store to find the cheapest platform.";
+}
+grid.addEventListener("input",e=>{const r=e.target.closest(".row"),c=e.target.closest(".card");if(!r)return;
+  const v=parseInt(e.target.value.replace(/[^0-9]/g,""),10);(entered[c.dataset.i]=entered[c.dataset.i]||{})[r.dataset.s]=v>0?v:0;if(!(v>0))delete entered[c.dataset.i][r.dataset.s];mark(c);});
+q.oninput=sort.onchange=render;render();
+grid.addEventListener("pointermove",e=>{const c=e.target.closest(".card");if(c){const r=c.getBoundingClientRect();c.style.setProperty("--x",e.clientX-r.left+"px");c.style.setProperty("--y",e.clientY-r.top+"px");}});
+
+// Blue glitter effect
+const cv=document.getElementById("fx"),ctx=cv.getContext("2d");let ps=[];
+function size(){const d=devicePixelRatio||1;cv.width=innerWidth*d;cv.height=innerHeight*d;ctx.setTransform(d,0,0,d,0,0);}
+size();addEventListener("resize",size);
+const cols=["#2f8cff","#58b4ff","#9bd3ff","#1f6bff","#ffffff"];
+function spawn(x,y,n,b){for(let i=0;i<n;i++){const a=Math.random()*6.283,s=(b?2.5:1)*Math.random()*2+.3;ps.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-.3,life:1,d:.012+Math.random()*.02,r:Math.random()*2.4+.8,c:cols[Math.random()*cols.length|0],tw:Math.random()*6});}}
+addEventListener("pointermove",e=>spawn(e.clientX,e.clientY,3,false));
+addEventListener("pointerdown",e=>spawn(e.clientX,e.clientY,40,true));
+(function loop(){
+ ctx.clearRect(0,0,innerWidth,innerHeight);ctx.globalCompositeOperation="lighter";
+ ps=ps.filter(p=>p.life>0);
+ for(const p of ps){p.x+=p.vx;p.y+=p.vy;p.vy+=.02;p.vx*=.98;p.life-=p.d;p.tw+=.4;
+  ctx.globalAlpha=Math.max(0,p.life)*(.6+.4*Math.sin(p.tw));ctx.fillStyle=p.c;ctx.shadowColor="#2f8cff";ctx.shadowBlur=10;
+  const r=p.r*(1+Math.sin(p.tw)*.4);ctx.beginPath();
+  ctx.moveTo(p.x,p.y-r*2);ctx.lineTo(p.x+r*.5,p.y-r*.5);ctx.lineTo(p.x+r*2,p.y);ctx.lineTo(p.x+r*.5,p.y+r*.5);
+  ctx.lineTo(p.x,p.y+r*2);ctx.lineTo(p.x-r*.5,p.y+r*.5);ctx.lineTo(p.x-r*2,p.y);ctx.lineTo(p.x-r*.5,p.y-r*.5);ctx.closePath();ctx.fill();}
+ ctx.globalAlpha=1;ctx.shadowBlur=0;requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
